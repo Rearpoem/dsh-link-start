@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "title": {
+    "en": "dsh-link-start",
+    "zh": "dsh-link-start"
+  },
+  "description": {
+    "en": "Index for the Link Start splash plugin.",
+    "zh": "Link Start 启动画面插件的索引。"
+  },
+  "plugins": [
+    {
+      "name": "dsh-link-start",
+      "title": {
+        "en": "Link Start splash",
+        "zh": "Link Start 启动画面"
+      },
+      "description": {
+        "en": "Replace the DSH startup screen with an anime-style Link Start dive that shows your DSH status. Click or press any key to skip.",
+        "zh": "把 DSH 启动画面换成动画风格的 Link Start 连线动画，并显示你这台 DSH 的状态。点击或按任意键可跳过。"
+      },
+      "icon": "icon.svg",
+      "author": "FHun",
+      "homepage": "https://github.com/Rearpoem/dsh-link-start",
+      "repository": {
+        "url": "https://github.com/Rearpoem/dsh-link-start"
+      },
+      "versions": [
+        {
+          "version": "0.1.0",
+          "publishTimestamp": 1794299051,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/Rearpoem/dsh-link-start",
+            "commit": "9c1331a10d0c2cd4707e740e2683767ce6d24e49"
+          },
+          "engines": {
+            "dsh": ">=0.2.2-rc.1 <0.3.0"
+          }
+        }
+      ]
+    }
+  ]
+}
