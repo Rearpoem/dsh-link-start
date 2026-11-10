@@ -1,0 +1,4 @@
+- insert:
+    - id: dsh-link-start
+      name: dsh-link-start
+      config: {}

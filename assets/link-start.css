@@ -1,0 +1,132 @@
+/* dsh-link-start: full-window splash shown before the DSH shell mounts. Everything is scoped to #sao-ls.
+   Scenes follow the original connection sequence: open → rays → hud → stack → lang → login → register → gray → welcome → blue → white. */
+#sao-ls{
+  --ui:"Avenir Next","Helvetica Neue","PingFang SC","Hiragino Sans","Segoe UI",system-ui,sans-serif;
+  --mono:Menlo,Consolas,"SF Mono",monospace;
+  --panel:linear-gradient(#0d8dce,#0778b9);--panel-edge:#7aa9c9;
+  position:fixed;inset:0;z-index:2147483647;overflow:hidden;
+  background:#000;color:#fff;cursor:default;user-select:none;-webkit-user-select:none;font-family:var(--ui);
+  opacity:1;transition:opacity .7s ease;
+  /* Failsafe: if the runtime never finishes, stop covering the app. */
+  animation:sao-ls-failsafe 1ms linear 26s forwards;
+}
+#sao-ls *{box-sizing:border-box}
+#sao-ls.sao-out{opacity:0;pointer-events:none}
+@keyframes sao-ls-failsafe{to{opacity:0;visibility:hidden;pointer-events:none}}
+@keyframes sao-ls-fade{to{opacity:1}}
+@keyframes sao-ls-hide{to{opacity:0}}
+@keyframes sao-ls-pop{from{opacity:0;transform:scale(.35)}to{opacity:1;transform:none}}
+@keyframes sao-ls-spin{to{transform:rotate(360deg)}}
+@keyframes sao-ls-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes sao-ls-rise{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+
+/* Layers are hard cuts, like the original; each scene turns its own layers on. */
+#sao-ls .sao-layer{position:absolute;inset:0;opacity:0;visibility:hidden}
+#sao-ls canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;visibility:hidden}
+#sao-ls:is([data-scene=rays],[data-scene=hud],[data-scene=stack],[data-scene=lang],[data-scene=login],[data-scene=register]) .sao-room,
+#sao-ls:is([data-scene=gray],[data-scene=welcome],[data-scene=blue]) .sao-gray,
+#sao-ls:is([data-scene=rays],[data-scene=blue]) canvas,
+#sao-ls[data-scene=open] .sao-open,
+#sao-ls[data-scene=hud] .sao-hud,
+#sao-ls[data-scene=stack] .sao-stack,
+#sao-ls[data-scene=lang] .sao-lang,
+#sao-ls[data-scene=login] .sao-login,
+#sao-ls[data-scene=register] .sao-register,
+#sao-ls:is([data-scene=welcome],[data-scene=blue]) .sao-welcome,
+#sao-ls[data-scene=white] .sao-white{opacity:1;visibility:visible}
+
+#sao-ls .sao-room{background:radial-gradient(ellipse at center,#f6f6f6 0%,#eeeeee 52%,#c8c8c8 100%)}
+#sao-ls .sao-gray{background:radial-gradient(ellipse at center,#9b9b9b 0%,#8b8b8b 55%,#6f6f6f 100%)}
+#sao-ls[data-scene=gray] .sao-gray{transition:opacity .55s ease}
+/* The blue dive is drawn over the welcome text, which flies past the camera underneath. */
+#sao-ls[data-scene=blue] canvas{z-index:1}
+#sao-ls .sao-white{background:#fff}
+
+/* 1. Link Start */
+#sao-ls .sao-open{background:#000;display:grid;place-items:center}
+#sao-ls .sao-open span{font-size:clamp(20px,3.4vw,38px);font-weight:300;letter-spacing:.24em;padding-left:.24em;opacity:0;animation:sao-ls-fade .35s ease .05s forwards}
+
+/* 2. HUD: seed icon, discs flying past, five checks stacked on the right */
+#sao-ls .sao-icon{position:relative;aspect-ratio:1}
+#sao-ls .sao-icon svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#sao-ls .sao-icon .spin{animation:sao-ls-spin 7s linear infinite}
+#sao-ls .sao-icon .spin.rev{animation-duration:5s;animation-direction:reverse}
+#sao-ls .sao-dots{position:absolute;left:-15%;top:34%;display:grid;gap:5px}
+#sao-ls .sao-dots i{display:block;width:5px;height:5px;background:#a9bce6;opacity:.85}
+#sao-ls .sao-seedwrap{position:absolute;inset:0;display:grid;place-items:center}
+#sao-ls .sao-seed{width:min(19vmin,150px)}
+#sao-ls[data-scene=hud] .sao-seed{animation:sao-ls-pop .3s cubic-bezier(.3,1.5,.5,1) both}
+#sao-ls .sao-disc{position:absolute;left:50%;top:50%;width:76vmin;margin:-38vmin 0 0 -38vmin;opacity:0;will-change:transform,opacity}
+#sao-ls .sao-chip{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:6vmin;line-height:1.35;padding:0 .8em;white-space:nowrap}
+#sao-ls .sao-chip.tag{background:rgba(238,250,252,.93);color:#8dd1e3}
+#sao-ls .sao-chip.ok{background:#8fe0d6;color:#fff;letter-spacing:.14em;padding-left:.94em;opacity:0}
+#sao-ls .sao-disc.go .tag{animation:sao-ls-hide 0s linear .75s forwards}
+#sao-ls .sao-disc.go .ok{animation:sao-ls-fade 0s linear .75s forwards}
+#sao-ls .sao-column{position:absolute;right:1.4vmin;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center}
+#sao-ls .sao-mini{width:min(15vmin,116px);margin:-.7vmin 0}
+#sao-ls .sao-mini .sao-dots{left:-13%;gap:4px}
+#sao-ls .sao-mini .sao-dots i{width:4px;height:4px;background:#7fa8e8}
+#sao-ls .sao-mini .green{opacity:0;transition:opacity .12s ease}
+#sao-ls .sao-mini.ok .green{opacity:1}
+#sao-ls[data-scene=stack] .sao-mini{animation:sao-ls-pop .28s cubic-bezier(.3,1.5,.5,1) calc(var(--i) * 55ms) both}
+/* Each check is labelled with what this DSH is running. */
+#sao-ls .sao-cap{position:absolute;right:124%;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:.75em;max-width:58vw;white-space:nowrap;font:600 clamp(11px,1.6vmin,13px)/1.9 var(--ui);letter-spacing:.06em;padding:0 .9em;border-radius:3px;background:rgba(255,255,255,.94);color:#2f7fe0;box-shadow:0 0 0 1px rgba(122,169,201,.55);transition:background .12s ease,color .12s ease,box-shadow .12s ease}
+#sao-ls .sao-cap b{font-weight:600;color:#8ea8c8;transition:color .12s ease}
+#sao-ls .sao-cap span{min-width:0;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);letter-spacing:.02em}
+#sao-ls .sao-mini.ok .sao-cap{background:#2fd84c;color:#fff;box-shadow:0 0 0 1px #14b830}
+#sao-ls .sao-mini.ok .sao-cap b{color:rgba(255,255,255,.78)}
+
+/* 3. Language */
+#sao-ls .sao-pill{font-size:clamp(15px,2.3vw,24px);line-height:1.5;color:#fff;padding:0 1.7em;border-radius:5px;border:1px solid rgba(255,255,255,.6);white-space:nowrap}
+#sao-ls .sao-langrow{position:absolute;left:23%;top:45%;display:flex;align-items:flex-start}
+#sao-ls .sao-langkey{background:linear-gradient(#2f9af3,#1479e6);clip-path:inset(0 100% 0 0)}
+#sao-ls .sao-langval{position:relative;z-index:1;margin:.42em 0 0 -1.15em;padding-left:2.3em;background:linear-gradient(#3aa8f5,#1d8de9);clip-path:inset(0 100% 0 0)}
+#sao-ls .sao-langval::before{content:"";position:absolute;left:0;top:0;width:1.25em;height:1.25em;border-radius:3px;background:#1d5fe0;opacity:.9}
+#sao-ls .sao-tri{display:inline-block;width:0;height:0;margin-right:.5em;vertical-align:.05em;border-style:solid;border-width:.36em 0 .36em .55em;border-color:transparent transparent transparent #fff}
+#sao-ls[data-scene=lang] .sao-langkey{animation:sao-ls-wipe .25s ease-out both}
+#sao-ls[data-scene=lang] .sao-langval{animation:sao-ls-wipe .3s ease-out .45s both}
+
+/* 4. Log in panel */
+#sao-ls .sao-login,#sao-ls .sao-register{display:grid;place-items:center;padding:16px}
+#sao-ls .sao-panel{background:var(--panel);border:2px solid var(--panel-edge);border-radius:9px;color:#fff}
+#sao-ls .sao-loginbox{width:min(440px,100%);display:grid;grid-template-columns:1fr 1.2fr;gap:14px;padding:16px 22px 26px}
+#sao-ls[data-scene=login] .sao-loginbox{animation:sao-ls-rise .2s ease-out both}
+#sao-ls .sao-loginbox h2{margin:0;font-weight:400;font-size:clamp(18px,2.3vw,24px);letter-spacing:.02em}
+#sao-ls .sao-fields{padding-top:12px;display:grid;gap:3px;font-size:12px;line-height:1.2}
+#sao-ls .sao-fields span{margin-top:4px}
+#sao-ls .sao-input{height:18px;background:#fff;color:#454545;font:600 13px/19px var(--mono);letter-spacing:.1em;padding:0 4px;overflow:hidden;white-space:nowrap}
+
+/* 5. Character confirmation */
+#sao-ls .sao-regwrap{width:min(560px,100%);display:flex;flex-direction:column;align-items:center;gap:14px}
+#sao-ls[data-scene=register] .sao-regwrap{animation:sao-ls-rise .2s ease-out both}
+#sao-ls .sao-regtitle{background:linear-gradient(#1b91d8,#0d7dc3);border:2px solid var(--panel-edge);border-radius:8px;padding:0 2.4em;font-size:clamp(15px,1.9vw,19px);line-height:1.6;letter-spacing:.06em}
+#sao-ls .sao-regbody{width:100%;border-radius:10px;padding:20px clamp(16px,4vw,32px) 16px;display:flex;flex-direction:column;gap:18px}
+#sao-ls .sao-regbody p{margin:0;font-size:clamp(14px,1.9vw,19px);line-height:1.55;letter-spacing:.04em}
+#sao-ls .sao-name{align-self:center;min-width:44%;max-width:100%;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#16dcff;color:#fff;font:600 15px/1.6 var(--mono);letter-spacing:.18em;padding:0 .8em}
+#sao-ls .sao-choices{display:flex;justify-content:space-around}
+#sao-ls .sao-choice{min-width:72px;text-align:center;border-radius:999px;background:#45cdf7;color:#e9fdff;font-size:13px;line-height:1.5;letter-spacing:.08em;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
+#sao-ls .sao-choice.on{background:#a6f2ff;color:#0a6fae;box-shadow:0 0 0 2px rgba(255,255,255,.75),0 0 14px rgba(160,240,255,.9)}
+
+/* 6. Welcome */
+#sao-ls .sao-welcome{display:grid;place-items:center;padding:16px}
+#sao-ls .sao-welcome p{
+  margin:0;text-align:center;color:#111;opacity:0;
+  font-family:"DIN Condensed","Bahnschrift Condensed","Bahnschrift","Arial Narrow",sans-serif;font-weight:700;
+  font-size:clamp(34px,7.4vw,90px);line-height:1.12;letter-spacing:.17em;padding-left:.17em;
+}
+#sao-ls .sao-welcome p span{display:block}
+#sao-ls[data-scene=welcome] .sao-welcome p{animation:sao-ls-fade .8s ease forwards,sao-ls-zoom 2.3s linear forwards}
+#sao-ls[data-scene=blue] .sao-welcome p{animation:sao-ls-through .5s cubic-bezier(.55,0,1,.45) forwards}
+@keyframes sao-ls-zoom{from{transform:scale(1)}to{transform:scale(1.13)}}
+@keyframes sao-ls-through{from{transform:scale(1.13);opacity:1}55%{opacity:1}to{transform:scale(7);opacity:0}}
+
+/* Skip hint */
+#sao-ls .sao-skip{
+  position:absolute;left:0;right:0;bottom:max(18px,3vh);text-align:center;font-size:12px;letter-spacing:.12em;
+  color:rgba(0,0,0,.38);opacity:0;animation:sao-ls-fade .6s ease 1.2s forwards;
+}
+#sao-ls:is([data-scene=open],[data-scene=hud]) .sao-skip{color:rgba(255,255,255,.62)}
+#sao-ls:is([data-scene=blue],[data-scene=white]) .sao-skip{visibility:hidden}
+
+/* Reduced motion: a still welcome card, no dive. */
+#sao-ls.sao-calm .sao-welcome p{animation:none;opacity:1;transform:none}

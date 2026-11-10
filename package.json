@@ -1,0 +1,55 @@
+{
+  "name": "dsh-link-start",
+  "version": "0.1.0",
+  "description": "把 DSH 启动画面换成动画风格的 Link Start 连线动画，并显示你这台 DSH 的状态。",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "splash",
+    "startup"
+  ],
+  "homepage": "https://github.com/Rearpoem/dsh-link-start#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rearpoem/dsh-link-start.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rearpoem/dsh-link-start/issues"
+  },
+  "type": "module",
+  "license": "MIT",
+  "author": "FHun",
+  "engines": {
+    "dsh": ">=0.2.2-rc.1 <0.3.0"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "dist",
+    "src",
+    "assets",
+    "cordis.patch.yml",
+    "locale",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "tsc --noEmit",
+    "index": "node scripts/generate-index.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "esbuild": "^0.25.12",
+    "typescript": "^5.9.3"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
