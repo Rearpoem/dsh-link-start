@@ -27,12 +27,12 @@
       },
       "versions": [
         {
-          "version": "0.1.0",
-          "publishTimestamp": 1794299051,
+          "version": "0.1.1",
+          "publishTimestamp": 1794373761,
           "source": {
             "type": "git",
             "url": "https://github.com/Rearpoem/dsh-link-start",
-            "commit": "9c1331a10d0c2cd4707e740e2683767ce6d24e49"
+            "commit": "280a21a36be6cea969bd786782c70f0c2c8e0960"
           },
           "engines": {
             "dsh": ">=0.2.2-rc.1 <0.3.0"
