@@ -13,7 +13,10 @@
   } catch { /* storage unavailable: play anyway */ }
 
   const doc = document;
-  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // motion: 'auto' follows the system's reduced-motion setting (Windows turns it on together with
+  // "Animation effects: off"), 'full' always plays the dive, 'gentle' always plays the calm version.
+  const motion = settings.motion === 'full' || settings.motion === 'gentle' ? settings.motion : 'auto';
+  const calm = motion === 'gentle' || (motion === 'auto' && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const dsh = settings.dsh && typeof settings.dsh === 'object' ? settings.dsh : {};
   // The DSH language preference wins; without one DSH follows the browser, and so do we.
   const locale = String(dsh.locale || navigator.language || 'en');
@@ -99,7 +102,7 @@
   const root = el('div', calm ? 'sao-calm' : '');
   root.id = 'sao-ls';
   root.setAttribute('aria-hidden', 'true');
-  root.dataset.scene = calm ? 'welcome' : 'open';
+  root.dataset.scene = 'open';
   const layer = name => el('div', `sao-layer sao-${name}`);
 
   const room = layer('room');
@@ -182,11 +185,30 @@
   (doc.body || doc.documentElement).append(root);
 
   // ---- Timeline ----------------------------------------------------------------------------
-  const timers = new Set();
-  let finished = false;
-  const later = (ms, fn) => { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); };
+  // Scenes run on a stall-proof clock. It follows real time but moves at most CAP ms per tick, so
+  // when the DSH shell's boot blocks the main thread for seconds on a slow machine, the sequence
+  // pauses there instead of jumping straight to whichever scene is due when the thread comes back.
+  const CAP = 100;
+  const born = performance.now();
+  const queue = [];
+  let clock = 0, wall = born, ticker = 0, finished = false, beat = 0;
+  const later = (ms, fn) => { queue.push({ at: clock + ms, fn }); queue.sort((a, b) => a.at - b.at); };
+  function tick() {
+    const now = performance.now();
+    clock += Math.min(now - wall, CAP);
+    wall = now;
+    while (!finished && queue.length && queue[0].at <= clock) {
+      const { fn } = queue.shift();
+      try { fn(); } catch (error) { console.error('[dsh-link-start]', error); }
+    }
+    // A paused sequence can outlast the CSS failsafe; keep it 26 s past the last tick, so it
+    // still fires if this runtime ever stops ticking.
+    const second = Math.floor((now - born) / 1000);
+    if (second !== beat) { beat = second; root.style.animationDelay = `${second + 26}s`; }
+    if (!finished) ticker = setTimeout(tick, 16);
+  }
   const scene = name => { if (!finished) root.dataset.scene = name; };
-  const fx = calm ? null : createFx(canvas);
+  const fx = calm ? null : createFx(canvas, settings.quality);
 
   function type(target, text, step, done) {
     let index = 0;
@@ -209,12 +231,19 @@
     else later(120, () => leaveWhenReady(waited + 120));
   }
 
+  // Hold "Link Start!" until the shell has started rendering (at most 5 s of unblocked time), so
+  // the heavy scenes don't compete with its boot for the main thread.
+  function whenShellStarts(go, waited = 0) {
+    if (shellMounted() || waited >= 5000) go();
+    else later(100, () => whenShellStarts(go, waited + 100));
+  }
+
   function finish() {
     if (finished) return;
     finished = true;
     root.classList.add('sao-out');
-    for (const id of timers) clearTimeout(id);
-    timers.clear();
+    clearTimeout(ticker);
+    queue.length = 0;
     removeEventListener('keydown', onKey, true);
     root.removeEventListener('pointerdown', onPointer);
     setTimeout(() => { fx?.stop(); root.remove(); }, 750);
@@ -229,11 +258,6 @@
   function onPointer(event) { event.preventDefault(); finish(); }
   addEventListener('keydown', onKey, true);
   root.addEventListener('pointerdown', onPointer);
-
-  if (calm) {
-    later(1600, () => leaveWhenReady());
-    return;
-  }
 
   // The camera flies past five big discs; each turns its label into OK on the way.
   function flyDiscs() {
@@ -258,29 +282,46 @@
   }
 
   const accountName = String(settings.account);
-  later(800, () => { scene('rays'); fx.rays(); });
-  later(4000, () => { fx.stop(); scene('hud'); });
-  later(4650, flyDiscs);
-  later(7000, () => scene('stack'));
-  later(7700, () => minis.forEach(mini => mini.classList.add('ok')));
-  later(8000, scatterMinis);
-  later(8500, () => scene('lang'));
-  later(9800, () => {
-    scene('login');
-    later(250, () => type(account, accountName, Math.min(65, 520 / accountName.length), () => later(120, () => type(apiKey, `sk-${'*'.repeat(12)}`, 45))));
-  });
-  later(11350, () => scene('register'));
-  later(12000, () => yes.classList.add('on'));
-  later(12800, () => scene('gray'));
-  later(13300, () => scene('welcome'));
-  later(15600, () => { scene('blue'); fx.blue(); });
-  later(18000, () => { fx.stop(); scene('white'); });
-  later(18250, () => leaveWhenReady());
+  // [ms, step, motion-only]. The calm version keeps every scene that shows this DSH's state and
+  // drops what flies, spins or flashes: the colour burst, the discs, the scatter and the blue dive.
+  const end = calm ? 15600 : 18000;
+  const TIMELINE = [
+    [800, () => { scene('rays'); fx.rays(); }, true],
+    [4000, () => { fx.stop(); scene('hud'); }, true],
+    [4650, flyDiscs, true],
+    [7000, () => scene('stack')],
+    [7700, () => minis.forEach(mini => mini.classList.add('ok'))],
+    [8000, scatterMinis, true],
+    [8500, () => scene('lang')],
+    [9800, () => {
+      scene('login');
+      later(250, () => type(account, accountName, Math.min(65, 520 / accountName.length), () => later(120, () => type(apiKey, `sk-${'*'.repeat(12)}`, 45))));
+    }],
+    [11350, () => scene('register')],
+    [12000, () => yes.classList.add('on')],
+    [12800, () => scene('gray')],
+    [13300, () => scene('welcome')],
+    [15600, () => { scene('blue'); fx.blue(); }, true],
+    [end, () => { fx?.stop(); scene('white'); }],
+    [end + 250, () => leaveWhenReady()],
+  ];
+  const first = calm ? 7000 : 800;
+  later(calm ? 1400 : 800, () => whenShellStarts(() => {
+    for (const [ms, step, motionOnly] of TIMELINE) if (!(calm && motionOnly)) later(ms - first, step);
+  }));
+  tick();
 
   // ---- Canvas effects: the colour burst on white, and the blue dive at the end -------------
-  function createFx(target) {
+  // quality: 'high' and 'low' pin a level; 'auto' starts each effect high and steps down as soon as
+  // frames run slow (a weak GPU, or no GPU and the canvas drawn in software).
+  function createFx(target, quality) {
     const g = target.getContext('2d');
     if (!g) return { rays() {}, blue() {}, stop() {} };
+    // 2: full resolution, bloom and grain. 1: one canvas pixel per CSS pixel, no bloom or grain.
+    // 0: half resolution and about half the particles.
+    let level = quality === 'low' ? 0 : 2;
+    const pinned = quality === 'high' || quality === 'low';
+    const scaleAt = l => (l === 0 ? 0.5 : Math.min(devicePixelRatio || 1, l === 1 ? 1 : 2));
     const TAU = Math.PI * 2;
     const pick = list => list[(Math.random() * list.length) | 0];
     const between = (lo, hi) => lo + Math.random() * (hi - lo);
@@ -291,7 +332,7 @@
     const RAY_COLORS = ['#d81ed8', '#d81ed8', '#d81ed8', '#19c6d6', '#19c6d6', '#d2d228', '#d2d228', '#1cc41c', '#1cc41c', '#d42020', '#151515', '#151515', '#707070', '#707070'];
     const resetRay = (r, z) => Object.assign(r, { a: Math.random() * TAU, w: 0.03 + Math.random() * 0.065, z, len: 1.2 + Math.random() * 3.2, v: 0.75 + Math.random() * 0.5, c: pick(RAY_COLORS) });
     const rays = Array.from({ length: 170 }, () => resetRay({}, 5 + Math.random() * 5));
-    let width = 0, height = 0, raf = 0, mode = '', began = 0, last = 0;
+    let width = 0, height = 0, raf = 0, mode = '', elapsed = 0, last = 0, slow = 0;
 
     // Bloom: a small blurred copy of each blue frame, screened back on top, softens every edge.
     const bloom = doc.createElement('canvas');
@@ -299,7 +340,7 @@
     let grain = null;
 
     function resize() {
-      const ratio = Math.min(devicePixelRatio || 1, 2);
+      const ratio = scaleAt(level);
       width = innerWidth; height = innerHeight;
       target.width = Math.round(width * ratio); target.height = Math.round(height * ratio);
       g.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -365,11 +406,12 @@
     const resetMote = (m, s = 0) => Object.assign(m, { a: Math.random() * TAU, s, v: between(0.25, 0.8), size: between(0.8, 2.4), c: pick([WHITE, ICE, CYAN]) });
     let field = null;
     function initField() {
+      const n = count => (level === 0 ? Math.ceil(count * 0.55) : count);
       return {
-        spikes: Array.from({ length: 40 }, () => ({ a: Math.random() * TAU, t0: between(0.08, 0.6), v: between(0.9, 1.6), len: between(0.2, 0.45), half: between(0.02, 0.06), c: pick([DEEP, DEEP, ROYAL, MID, CYAN, CYAN, ICE]) })),
-        fan: Array.from({ length: 64 }, () => ({ a: Math.random() * TAU, w: between(0.012, 0.075), drift: between(-0.05, 0.05), alpha: between(0.35, 0.9), phase: Math.random() * TAU, c: pick([DEEP, DEEP, ROYAL, ROYAL, MID, CYAN, CYAN, CYAN, ICE, WHITE]) })),
-        dashes: Array.from({ length: 80 }, () => resetDash({}, Math.random() * 0.9)),
-        motes: Array.from({ length: 55 }, () => resetMote({}, Math.random() * 0.9)),
+        spikes: Array.from({ length: n(40) },() => ({ a: Math.random() * TAU, t0: between(0.08, 0.6), v: between(0.9, 1.6), len: between(0.2, 0.45), half: between(0.02, 0.06), c: pick([DEEP, DEEP, ROYAL, MID, CYAN, CYAN, ICE]) })),
+        fan: Array.from({ length: n(64) },() => ({ a: Math.random() * TAU, w: between(0.012, 0.075), drift: between(-0.05, 0.05), alpha: between(0.35, 0.9), phase: Math.random() * TAU, c: pick([DEEP, DEEP, ROYAL, ROYAL, MID, CYAN, CYAN, CYAN, ICE, WHITE]) })),
+        dashes: Array.from({ length: n(80) }, () => resetDash({}, Math.random() * 0.9)),
+        motes: Array.from({ length: n(55) }, () => resetMote({}, Math.random() * 0.9)),
         sparks: [],
       };
     }
@@ -561,7 +603,7 @@
         g.fillRect(0, 0, width, height);
       }
 
-      if (b) {
+      if (b && level === 2) {
         b.clearRect(0, 0, bloom.width, bloom.height);
         b.filter = 'blur(2px)';
         b.drawImage(target, 0, 0, bloom.width, bloom.height);
@@ -580,7 +622,7 @@
         g.fillRect(0, 0, width, height);
       }
 
-      if (grain) {
+      if (grain && level === 2) {
         g.save();
         g.globalCompositeOperation = 'source-atop';
         g.globalAlpha = 0.07 * (1 - out) * clamp01(t / 0.4);
@@ -593,15 +635,26 @@
     }
 
     function frame(now) {
-      if (!began) { began = now; last = now; }
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const gap = last ? now - last : 0;
       last = now;
-      (mode === 'rays' ? drawRays : drawBlue)((now - began) / 1000, dt);
+      // A stall longer than the timeline's CAP pauses the effect too, so it stays in step with the scenes.
+      elapsed += Math.min(gap, CAP) / 1000;
+      if (width && height) (mode === 'rays' ? drawRays : drawBlue)(elapsed, Math.min(0.05, gap / 1000));
+      else resize(); // the window had no size yet
+      // Software rendering shows up as one very slow frame: go straight to the lowest level.
+      // Otherwise two slow frames in a row drop one level; a single hitch (GC, the shell) does not.
+      slow = gap > 45 ? slow + 1 : 0;
+      const drop = gap > 120 ? level : slow >= 2 ? 1 : 0;
+      if (!pinned && drop && level > 0) {
+        level = Math.max(0, level - drop); slow = 0; resize();
+        if (level === 0 && field) for (const key of ['spikes', 'fan', 'dashes', 'motes']) field[key].length = Math.ceil(field[key].length * 0.55);
+      }
       raf = requestAnimationFrame(frame);
     }
     function run(next) {
       cancelAnimationFrame(raf);
-      mode = next; began = 0;
+      mode = next; elapsed = 0; last = 0; slow = 0;
+      if (!pinned) level = 2; // each effect gets its own chance at full quality
       if (next === 'blue') { field = initField(); grain ??= makeGrain(); }
       resize();
       addEventListener('resize', resize);

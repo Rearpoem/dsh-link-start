@@ -2,7 +2,15 @@ import { readFileSync } from 'node:fs';
 import os from 'node:os';
 
 /** Optional bundle config; anything missing or malformed falls back to the defaults. */
-type Options = { account?: unknown; welcome?: unknown; everyReload?: unknown };
+type Options = { account?: unknown; welcome?: unknown; everyReload?: unknown; motion?: unknown; quality?: unknown };
+
+/** First entry is the default. */
+const MOTION = ['auto', 'full', 'gentle'] as const;
+const QUALITY = ['auto', 'high', 'low'] as const;
+
+function choice<T extends string>(value: unknown, options: readonly T[]): T {
+  return options.find(option => option === value) ?? options[0];
+}
 
 /** What this DSH is running, shown inside the scenes. Every field is optional. */
 type Snapshot = {
@@ -85,6 +93,8 @@ export function apply(ctx: any, config: Options = {}) {
     account: text(config.account, 24) ?? osAccount() ?? 'Player',
     welcome: text(config.welcome, 60, 3) ?? DEFAULT_WELCOME,
     everyReload: config.everyReload === true,
+    motion: choice(config.motion, MOTION),
+    quality: choice(config.quality, QUALITY),
   };
   ctx.on('webserver/index-inject', (table: unknown[]) => {
     // Read at render time, when the other plugins have finished loading.

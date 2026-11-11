@@ -128,5 +128,9 @@
 #sao-ls:is([data-scene=open],[data-scene=hud]) .sao-skip{color:rgba(255,255,255,.62)}
 #sao-ls:is([data-scene=blue],[data-scene=white]) .sao-skip{visibility:hidden}
 
-/* Reduced motion: a still welcome card, no dive. */
-#sao-ls.sao-calm .sao-welcome p{animation:none;opacity:1;transform:none}
+/* Reduced motion: the same status scenes with plain fades; nothing flies, spins, wipes or zooms. */
+@keyframes sao-ls-appear{from{opacity:0}to{opacity:1}}
+#sao-ls.sao-calm .sao-icon .spin{animation:none}
+#sao-ls.sao-calm:is([data-scene=stack],[data-scene=lang],[data-scene=login],[data-scene=register]) :is(.sao-mini,.sao-langkey,.sao-langval,.sao-loginbox,.sao-regwrap){animation-name:sao-ls-appear;animation-timing-function:ease;clip-path:none}
+#sao-ls.sao-calm[data-scene=welcome] .sao-welcome p{animation:sao-ls-fade .8s ease forwards}
+#sao-ls.sao-calm .sao-white{transition:opacity .6s ease}

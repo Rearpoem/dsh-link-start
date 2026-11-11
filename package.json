@@ -1,6 +1,6 @@
 {
   "name": "dsh-link-start",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "把 DSH 启动画面换成动画风格的 Link Start 连线动画，并显示你这台 DSH 的状态。",
   "keywords": [
     "dsh-plugin",

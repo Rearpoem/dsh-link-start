@@ -18,7 +18,13 @@ English summary: a DSH plugin that replaces the startup screen with an ~18 s ani
 8. 灰色背景上 `Welcome to / DeepSeek Harness !`，缓慢放大
 9. 欢迎语冲过镜头，蓝色光束从中心爆开、铺满画面，褪成淡紫白，然后白屏淡出进入 DSH
 
-**点击或按任意键可跳过**（Cmd / Ctrl / Alt 组合键不拦截）。系统开启“减少动态效果”时只显示约 1.6 秒的静态欢迎语。
+**点击或按任意键可跳过**（Cmd / Ctrl / Alt 组合键不拦截）。
+
+系统开启“减少动态效果”时（Windows 的“动画效果”关掉、或性能选项选了“调整为最佳性能”也算），默认播放约 10 秒的平缓版：检测、语言、登录、工作区确认和欢迎语都在，只是去掉了光束、飞过的圆盘和蓝色收尾，场景之间只做淡入淡出。想不管系统设置、始终播放完整动画，把配置里的 `motion` 设为 `full`。
+
+低性能机器上：
+- DSH 启动卡住时，画面会停在 `Link Start!`，等卡顿过去再从头往下播，不会跳过场景。
+- 动画一卡就自动降低画质（降低分辨率，去掉光晕和颗粒，减少粒子）。
 
 ## 安装
 
@@ -38,7 +44,7 @@ English summary: a DSH plugin that replaces the startup screen with an ~18 s ani
 **方式二：命令行**
 
 ```sh
-dsh plugin --profile desktop add https://github.com/Rearpoem/dsh-link-start/releases/download/v0.1.0/dsh-link-start-0.1.0.tgz
+dsh plugin --profile desktop add https://github.com/Rearpoem/dsh-link-start/releases/download/v0.1.1/dsh-link-start-0.1.1.tgz
 ```
 
 `desktop` 换成你要装进去的 profile 名（如 `web`）。
@@ -54,6 +60,8 @@ dsh plugin --profile desktop add https://github.com/Rearpoem/dsh-link-start/rele
     account: Player          # Log in 面板里的用户名，默认取系统用户名，最多 24 个字符
     welcome: "Welcome to\nDeepSeek Harness !"   # 欢迎语，用 \n 换行，最多 3 行、60 个字符
     everyReload: false       # true：每次页面重载都播放
+    motion: auto             # auto：跟随系统“减少动态效果”；full：始终完整播放；gentle：始终播放平缓版
+    quality: auto            # auto：卡了自动降画质；high：始终最高画质；low：始终低画质（老机器可直接用）
 ```
 
 改配置后需要重启 DSH。
@@ -65,7 +73,9 @@ dsh plugin --profile desktop add https://github.com/Rearpoem/dsh-link-start/rele
 - 桌面版：Host 启动完成时把注入行随启动载荷发给窗口，页面在 React 界面挂载前执行它们。
 - Web 版：注入行直接渲染进 `index.html`，位于 `#root` 之前。
 
-所以遮罩会在 DSH 自己的界面出来之前就盖上去。动画播完后，如果 DSH 界面还没渲染，会在白屏多停最多 4 秒。CSS 里还有 26 秒兜底：脚本万一出错，遮罩也会自动消失，不会挡住界面。
+所以遮罩会在 DSH 自己的界面出来之前就盖上去。`Link Start!` 会停到 DSH 界面开始渲染（最多 5 秒），再开始后面的场景，免得和 DSH 抢启动时间。动画播完后，如果 DSH 界面还没渲染，会在白屏多停最多 4 秒。
+
+场景按自己的时钟推进：主线程被卡住时，时钟最多前进 0.1 秒，卡顿过去后接着播，所以慢机器上不会一下跳到后面的场景。CSS 里还有兜底：脚本停止推进 26 秒后，遮罩会自动消失，不会挡住界面。
 
 同一个窗口只播放一次（用 `sessionStorage` 记录），页面重载不会重播；重启 DSH 后会重新播放。
 

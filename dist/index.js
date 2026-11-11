@@ -1,6 +1,11 @@
 // src/index.ts
 import { readFileSync } from "node:fs";
 import os from "node:os";
+var MOTION = ["auto", "full", "gentle"];
+var QUALITY = ["auto", "high", "low"];
+function choice(value, options) {
+  return options.find((option) => option === value) ?? options[0];
+}
 var DEFAULT_WELCOME = "Welcome to\nDeepSeek Harness !";
 var PLACEHOLDER = '"__LINK_START_SETTINGS__"';
 var LOCALE_PLUGIN = "@deepseek-ai/dsh-client-locale";
@@ -56,7 +61,9 @@ function apply(ctx, config = {}) {
   const base = {
     account: text(config.account, 24) ?? osAccount() ?? "Player",
     welcome: text(config.welcome, 60, 3) ?? DEFAULT_WELCOME,
-    everyReload: config.everyReload === true
+    everyReload: config.everyReload === true,
+    motion: choice(config.motion, MOTION),
+    quality: choice(config.quality, QUALITY)
   };
   ctx.on("webserver/index-inject", (table) => {
     const settings = { ...base, dsh: snapshot(ctx) };
